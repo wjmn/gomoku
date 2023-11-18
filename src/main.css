@@ -1,0 +1,251 @@
+[data-elm-hot="true"] {
+  height: inherit;
+}
+
+/* ----------------------------------------------------------------------------
+RESET PADDING AND BOX-SIZING
+------------------------------------------------------------------------------- */
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  font-family: Inter, "Segoe UI", Arial, Helvetica, system-ui, sans-serif;
+}
+
+/* ----------------------------------------------------------------------------
+STYLED DEFAULTS
+------------------------------------------------------------------------------- */
+
+input, select {
+  padding: 5px;
+}
+
+button {
+  background: #d1d5db;
+  color: #111827;
+  font-weight: bold;
+  padding: 0.5rem;
+  border-radius: 5px;
+  border: none;
+  border-bottom: 2px solid #9ca3af;
+  margin-top: 2px;
+  cursor: pointer;
+}
+
+button:hover {
+  border-bottom: 4px solid #9ca3af;
+  margin-top: 0px;
+}
+
+button:focus {
+  border-bottom: 0px;
+  margin-top: 4px;
+}
+
+button.selected {
+  border-bottom: 0px;
+  margin-top: 4px;
+  background: #6b7280;
+  color: white;
+}
+
+/* ----------------------------------------------------------------------------
+SETTINGS SCREEN COMPONENT-SPECIFIC STYLES
+------------------------------------------------------------------------------- */
+
+#settings-screen {
+  height: 100vh;
+  width: 100vw;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+#settings-modal {
+  padding: 1rem;
+  border: 1px solid black;
+}
+
+#settings-modal-header h1 {
+  font-size: 1.5em;
+  margin: 0;
+  text-align: center;
+}
+
+#settings-modal-intro {
+  margin: 1rem 0;
+}
+
+.setting-picker-item {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 0.75rem;
+}
+
+.setting-picker-item-label {
+  font-size: 0.8em;
+  color: #777;
+  font-weight: bold;
+  margin-bottom: 3px;
+}
+
+.setting-picker-item-input-container {
+  border: 1px solid grey;
+  display: flex;
+}
+
+.setting-picker-item-input-int-range, .setting-picker-item-input-float-range {
+  margin: 0 1rem;
+  flex: 1;
+}
+
+.setting-picker-item-input-value {
+  margin: 0 1rem;
+  display: flex;
+  text-align: center;
+  align-items: center;
+}
+
+.setting-picker-item-input-buttons {
+  display: flex;
+  gap: 1rem;
+}
+
+.setting-picker-item-button {
+  flex: 1;
+}
+
+.setting-picker-item-button-Red.selected {
+  background: red;
+}
+
+.setting-picker-item-button-Green.selected {
+  background: green;
+}
+
+.setting-picker-item-button-Blue.selected {
+  background: blue;
+}
+
+#settings-modal-footer {
+  display: flex;
+}
+
+#start-game-button {
+  background-color: #0ea5e9;
+  color: white;
+  border-color: #0284c7; 
+  flex: 1;
+  font-size: 1.5rem;
+}
+
+
+/* ----------------------------------------------------------------------------
+GAME SCREEN COMPONENT-SPECIFIC STYLES
+------------------------------------------------------------------------------- */
+
+#gameplay-screen {
+  height: 100vh;
+  width: 100vw;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#game-screen-container {
+  display: flex;
+  flex-direction: column;
+}
+
+#game-status {
+  margin-bottom: 0.5rem;
+  text-align: right;
+  font-weight: bold;
+}
+
+.game-status-text.red {
+  color: red;
+}
+
+.game-status-text.blue {
+  color: blue;
+}
+
+.game-status-text.green {
+  color: green;
+}
+
+#game-board {
+  margin: auto;
+  width: 80vh;
+  max-width: 90vw;
+  height: 80vh;
+  max-height: 90vw;
+  display: grid;
+  position: relative;
+}
+
+.game-cell {
+  position: relative;
+  height: 100%;
+}
+
+.game-cell.empty {
+  cursor: pointer;
+}
+
+.game-cell.empty:hover {
+  background-color: #e5e7eb;
+}
+
+.game-cell-marker.empty {
+  display: none;
+}
+
+.game-cell-marker {
+  position: relative;
+  height: 100%;
+  width: 100%;
+  border-radius: 99999px;
+  z-index: 10;
+  border-bottom: 5px solid black;
+}
+
+.game-cell-marker.red {
+  background: red;
+  border-color: darkred;
+}
+
+.game-cell-marker.blue {
+  background: blue;
+  border-color: darkblue;
+}
+
+.game-cell-marker.green {
+  background: green;
+  border-color: darkgreen;
+}
+
+.game-cell-line.vertical {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  height: 100%;
+  width: 1px;
+  border-left: 1px solid black;
+  z-index: 0;
+}
+
+.game-cell-line.horizontal {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  border-top: 1px solid black;
+  z-index: 0;
+}
