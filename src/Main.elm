@@ -36,6 +36,7 @@ type Msg
     = SettingsMsg Settings.Msg
     | GameplayMsg Game.Msg
     | ClickedStartGame
+    | ClickedStartNewGame
 
 
 withCmd : Cmd Msg -> Model -> ( Model, Cmd Msg )
@@ -71,6 +72,10 @@ update msg screen =
                     Game.update gameMsg game
                         |> mapGameCmd
 
+                ClickedStartNewGame ->
+                    SettingsScreen game.settings
+                        |> withCmd Cmd.none
+
                 _ ->
                     screen
                         |> withCmd Cmd.none
@@ -80,27 +85,39 @@ update msg screen =
 ---- VIEW ----
 
 
-introText : String
+introText : Html Msg
 introText =
-    "Welcome to Gomoku. Choose your settings below and click Start Game to begin."
+    div [ class "intro-text" ]
+        [ p []
+            [ text "Welcome to "
+            , span [ class "gomoku-title" ] [ text "Gomoku" ]
+            , text ", a five-in-a-row strategy board game. The first player to place five stones in a row wins (horizontally, vertically or diagonally)."
+            ]
+        , p [] [ text "Choose your settings below and click Start Game to begin." ]
+        ]
 
 
 view : Model -> Html Msg
 view screen =
     case screen of
         SettingsScreen settings ->
-            div [ id "settings-screen" ]
+            div [ id "settings-screen", class "screen" ]
                 [ div [ id "settings-modal" ]
-                    [ div [ id "settings-modal-header" ] [ h1 [] [ text "Settings" ] ]
-                    , div [ id "settings-modal-intro" ] [ text introText ]
+                    [ div [ id "settings-modal-header" ]
+                        [ h1 [ id "settings-modal-header-title" ] [ text "Gomoku" ]
+                        , h2 [ id "settings-modal-header-team" ] [ text "Team Example" ]
+                        ]
+                    , div [ id "settings-modal-intro" ] [ introText ]
                     , div [ id "settings-modal-body" ] [ Settings.view settings |> Html.map SettingsMsg ]
                     , div [ id "settings-modal-footer" ] [ button [ id "start-game-button", onClick ClickedStartGame ] [ text "Start Game" ] ]
                     ]
                 ]
 
         GameplayScreen game ->
-            div [ id "gameplay-screen" ]
-                [ Game.view game |> Html.map GameplayMsg ]
+            div [ id "gameplay-screen", class "screen" ]
+                [ Game.view game |> Html.map GameplayMsg
+                , div [ id "start-new-game-button-container" ] [ button [ id "start-new-game-button", onClick ClickedStartNewGame ] [ text "Restart" ] ]
+                ]
 
 
 

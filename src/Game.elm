@@ -8,10 +8,11 @@ import Html.Events exposing (..)
 import List exposing (..)
 import Maybe.Extra exposing (combine)
 import Random
-import Random.Array
+import Random.List
 import Settings exposing (PlayMode(..), Settings)
 import Task
 import Tuple exposing (first)
+import Process
 
 
 
@@ -56,12 +57,7 @@ init settings =
             ( initialSettings, Cmd.none )
 
         PlayComputerVsMe ->
-            case settings.computerDifficulty of
-                Settings.Easy ->
-                    ( initialSettings, makeComputerMoveEasy initialSettings )
-
-                Settings.Hard ->
-                    ( initialSettings, makeComputerMoveHard initialSettings )
+            (initialSettings, Task.perform (\_ -> PauseThenMakeComputerMove) (Process.sleep 250))
 
         PlayMeVsComputer ->
             ( initialSettings, Cmd.none )
@@ -134,6 +130,7 @@ applyMove game move =
 
 type Msg
     = ClickedSquare Int
+    | PauseThenMakeComputerMove
     | ReceivedComputerMove Move
     | NoOp
 
@@ -160,22 +157,24 @@ update msg game =
                                 |> withCmd Cmd.none
 
                         _ ->
-                            case game.settings.computerDifficulty of
-                                -- Example of using randomness to generate a move
-                                Settings.Easy ->
-                                    nextState
-                                        |> withCmd (makeComputerMoveEasy nextState)
-
-                                -- Example of deterministically generating a move
-                                Settings.Hard ->
-                                    nextState
-                                        |> withCmd (makeComputerMoveHard nextState)
+                            nextState 
+                            |> withCmd (Task.perform (\_ -> PauseThenMakeComputerMove) (Process.sleep 250))
 
                 Complete _ ->
                     nextState
                         |> withCmd Cmd.none
 
-        ReceivedComputerMove move ->
+        PauseThenMakeComputerMove ->
+            case game.settings.computerDifficulty of 
+                -- Example of using randomness to generate a move
+                Settings.Easy ->
+                    game |> withCmd (makeComputerMoveEasy game)
+
+                -- Example of deterministically generating a move
+                Settings.Hard ->
+                    game |> withCmd (makeComputerMoveHard game)
+
+        ReceivedComputerMove move -> 
             applyMove game move
                 |> withCmd Cmd.none
 
@@ -217,57 +216,62 @@ viewStatus ({ settings } as game) =
                 Playing ->
                     currentColour game |> Settings.colourToString
 
-        statusText =
+        (statusClass, statusText) =
             case game.status of
                 Playing ->
                     case settings.playMode of
                         PlayHumanVsHuman ->
-                            currentName game ++ "'s turn."
+                            ("status-playing", currentName game ++ "'s turn.")
 
                         PlayComputerVsMe ->
                             case game.turn of
                                 Player1 ->
-                                    currentName game ++ " is thinking..."
+                                    ("status-thinking", currentName game ++ " is thinking...")
 
                                 Player2 ->
-                                    "Your turn."
+                                    ("status-playing", "Your turn.")
 
                         PlayMeVsComputer ->
                             case game.turn of
                                 Player1 ->
-                                    "Your turn."
+                                    ("status-playing", "Your turn.")
 
                                 Player2 ->
-                                    currentName game ++ " is thinking..."
+                                    ("status-thinking", currentName game ++ " is thinking...")
 
                 Complete (Winner Player1) ->
                     case settings.playMode of
                         PlayHumanVsHuman ->
-                            currentName game ++ " wins!"
+                            ("status-won", currentName game ++ " WINS!")
 
                         PlayComputerVsMe ->
-                            currentName game ++ " wins!"
+                            ("status-lost", "You lost...")
 
                         PlayMeVsComputer ->
-                            "You win!"
+                            ("status-won", "You win!")
 
                 Complete (Winner Player2) ->
                     case settings.playMode of
                         PlayHumanVsHuman ->
-                            currentName game ++ " wins!"
+                            ("status-won", currentName game ++ " WINS!")
 
                         PlayComputerVsMe ->
-                            "You win!"
+                            ("status-won", "You win!")
 
                         PlayMeVsComputer ->
-                            currentName game ++ " wins!"
+                            ("status-lost", "You lost...)")
 
                 Complete Draw ->
-                    "It's a draw."
+                    ("status-draw", "It's a draw.")
     in
-    div [ id "game-status" ]
-        [ div [ class ("game-status-text " ++ colour) ] [ text statusText ] ]
-
+    div [ id "game-status", class statusClass, class colour ]
+        [ div [ class ("game-status-text " ++ colour) ] [ text statusText ]
+        , div [ class "firework-container", classList [("show", statusClass == "status-won")]] 
+            [div [class "firework"] []
+            , div [class "firework"] []
+            , div [class "firework"] []
+            ] 
+        , div [class "flash", class statusClass, classList [("show", statusClass == "status-won" || statusClass == "status-lost" || statusClass == "status-draw")]] [] ]
 
 viewBoard : Game -> Html Msg
 viewBoard game =
@@ -355,32 +359,6 @@ makeComputerMoveEasy game =
                 |> Array.indexedMap (\index cell -> ( index, cell ))
                 |> Array.filter (\( _, cell ) -> cell == Empty)
 
-        randomPairToMove maybePair =
-            maybePair
-                |> Maybe.map first
-                |> Maybe.withDefault 0
-                |> indexToCoord game.settings.boardSize
-                |> MarkEmptyCell
-    in
-    Random.Array.sample emptyCells
-        |> Random.map randomPairToMove
-        |> Random.generate ReceivedComputerMove
-
-
-
---------------------------------------------------------------------------------
--- COMPUTER: HARD PLAYER
---------------------------------------------------------------------------------
-
-
-makeComputerMoveHard : Game -> Cmd Msg
-makeComputerMoveHard game =
-    let
-        emptyCells =
-            game.board
-                |> Array.indexedMap (\index cell -> ( index, cell ))
-                |> Array.filter (\( _, cell ) -> cell == Empty)
-
         score ( index, cell ) =
             let
                 coord =
@@ -414,6 +392,108 @@ makeComputerMoveHard game =
 
             else
                 toFloat numNextTo + centralTendency
+
+        allScores =
+            emptyCells
+                |> Array.map (\c -> ( c, score c ))
+
+        maxScore =
+            allScores
+                |> Array.map Tuple.second
+                |> Array.toList
+                |> List.maximum
+                |> Maybe.withDefault 0
+    in
+    if maxScore > 100000 then
+        allScores
+            |> Array.toList
+            |> List.sortBy Tuple.second
+            |> List.reverse
+            |> List.head
+            |> Maybe.map (\( index, _ ) -> index)
+            |> Maybe.withDefault ( 0, Empty )
+            |> first
+            |> indexToCoord game.settings.boardSize
+            |> MarkEmptyCell
+            |> Random.constant
+            |> Random.generate ReceivedComputerMove
+
+    else
+        allScores
+            |> Array.toList
+            |> List.sortBy Tuple.second
+            |> List.reverse
+            |> List.take 5
+            |> List.map first
+            |> Random.List.choose
+            |> Random.map
+                (\maybeIndex ->
+                    maybeIndex
+                        |> first
+                        |> Maybe.withDefault ( 0, Empty )
+                        |> first
+                        |> indexToCoord game.settings.boardSize
+                        |> MarkEmptyCell
+                )
+            |> Random.generate ReceivedComputerMove
+
+
+
+--------------------------------------------------------------------------------
+-- COMPUTER: HARD PLAYER
+--------------------------------------------------------------------------------
+
+
+makeComputerMoveHard : Game -> Cmd Msg
+makeComputerMoveHard game =
+    let
+        emptyCells =
+            game.board
+                |> Array.indexedMap (\index cell -> ( index, cell ))
+                |> Array.filter (\( _, cell ) -> cell == Empty)
+
+        score ( index, cell ) =
+            let
+                coord =
+                    indexToCoord game.settings.boardSize index
+
+                halfBoard =
+                    toFloat game.settings.boardSize / 2.0
+
+                centralTendency =
+                    1.0 - (abs (halfBoard - toFloat coord.x) + abs (halfBoard - toFloat coord.y)) / toFloat game.settings.boardSize
+
+                allFives =
+                    allFivesWithCoord game.settings.boardSize coord
+
+                newBoard =
+                    setCell (coordToIndex game.settings.boardSize coord) game.turn game.board
+
+                myMostRow =
+                    mostInARow game.turn game.settings.boardSize newBoard allFives
+
+                newBoardOpponent =
+                    setCell (coordToIndex game.settings.boardSize coord) (opponent game.turn) game.board
+
+                oppMostRow =
+                    mostInARow (opponent game.turn) game.settings.boardSize newBoardOpponent allFives
+
+                numNextTo =
+                    [ ( -1, -1 ), ( -1, 0 ), ( -1, 1 ), ( 0, -1 ), ( 0, 1 ), ( 1, -1 ), ( 1, 0 ), ( 1, 1 ) ]
+                        |> List.map (\( dx, dy ) -> moveCoord coord dx dy)
+                        |> List.filter (\c -> inBounds game.settings.boardSize c)
+                        |> List.map (\c -> Array.get (coordToIndex game.settings.boardSize c) newBoard |> Maybe.withDefault Empty)
+                        |> List.filter (\c -> c == OccupiedBy game.turn)
+                        |> List.length
+            in
+            if playerWonWithCoord game.settings.boardSize coord newBoard then
+                99999999.99999
+
+            else if playerWonWithCoord game.settings.boardSize coord newBoardOpponent then
+                88888888.88888
+
+            else
+                toFloat numNextTo + centralTendency + toFloat myMostRow * 100.0 + toFloat oppMostRow * 100.0
 
         heuristicMove =
             emptyCells
@@ -498,6 +578,49 @@ isWinningFive boardSize board coords =
         |> combine
         |> Maybe.map (\cells -> List.all ((==) (OccupiedBy Player1)) cells || List.all ((==) (OccupiedBy Player2)) cells)
         |> Maybe.withDefault False
+
+
+takeWhile : (a -> Bool) -> List a -> List a
+takeWhile predicate list =
+    case list of
+        [] ->
+            []
+
+        x :: xs ->
+            if predicate x then
+                x :: takeWhile predicate xs
+
+            else
+                []
+
+
+dropWhile : (a -> Bool) -> List a -> List a
+dropWhile predicate list =
+    case list of
+        [] ->
+            []
+
+        x :: xs ->
+            if predicate x then
+                dropWhile predicate xs
+
+            else
+                list
+
+
+mostInARow : Player -> Int -> Array Cell -> List (List Coord) -> Int
+mostInARow player boardSize board fives =
+    fives
+        |> List.map
+            (\five ->
+                five
+                    |> List.map (\coord -> Array.get (coordToIndex boardSize coord) board |> Maybe.withDefault Empty)
+                    |> dropWhile ((/=) (OccupiedBy player))
+                    |> takeWhile ((==) (OccupiedBy player))
+                    |> List.length
+            )
+        |> List.maximum
+        |> Maybe.withDefault 0
 
 
 playerWonWithCoord : Int -> Coord -> Array Cell -> Bool
