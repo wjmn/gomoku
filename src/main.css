@@ -456,7 +456,7 @@ button#start-new-game-button:active {
 }
 
 /* Pure CSS firework animation: */
-/* Adapted from https://alvaromontoro.com/blog/68002/creating-a-firework-effect-with-css */
+/* Adapted from https://codepen.io/alvaromontoro/pen/MWrMEgW (Public CodePen MIT License) */
 @keyframes firework {
   0% { transform: translate(var(--x), var(--initialY)); width: var(--initialSize); opacity: 1; }
   50% { width: 0.5vmin; opacity: 1; }
