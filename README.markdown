@@ -3,11 +3,28 @@
 This is a minimal example game that fulfils all the basic requirements of the *Heuristic Problem Solving* final project. 
 
 Namely, this is:
-1. An interactive strategy game, which
-2. Runs directly in the browser, 
-3. Prompts for configuration of variable game parameters before starting the game,
-4. Implements a multi-player mode and a single-player mode against a computer AI, and
-5. Implements two difficulty levels of computer AI. 
+1. An interactive strategy game, with
+2. Thoroughly commented source code, which
+3. Runs directly in the browser, 
+4. Prompts for configuration of game parameters before starting the game,
+5. Implements a multi-player mode and a single-player mode against a computer AI, and
+6. Implements two difficulty levels of computer AI.
+
+# Developing
+
+Make sure you have [Elm](https://elm-lang.org/) and [`create-elm-app`](https://github.com/halfzebra/create-elm-app) installed. 
+
+To run the development server:
+
+```
+elm-app start
+```
+
+To build the application, run the build script (make sure you have execution permissions):
+
+```
+./build.sh
+```
 
 # Directory Structure
 
@@ -35,4 +52,12 @@ Within the `public` folder, there are three essential static assets:
 
 You are welcome to add other assets you need to access from your game (e.g. image files) into the `public` folder. They will be copied to the build root directory by the build script. 
 
-# Game Structure
+# Making your Own Game
+
+I suggest you use the [blank game template](https://github.com/wjmn/drecco-game-template) as the starting point for your own game, but you might find this helpful as a reference. The tricky thing with using a finished game like this as a template is that you won't be able to compile it if you just try to modify small bits of it - it's much easier to instead incrementally build up the functionality of your game from a blank template. 
+
+# Deployment
+
+If you're just developing a game, don't worry about this section. 
+
+*Note for deployers to the Dr Ecco website*: for deployment, copy the `build` directory into the Dr Ecco website games folder under the relevant year, rename the `build` folder to the game name, then run `zola build` to regenerate the Dr Ecco website.

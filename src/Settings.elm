@@ -1,6 +1,15 @@
 module Settings exposing (..)
 
-{-| This module contains the types and default values for the game settings.
+{-| This module handles everything on the Settings screen.
+
+TODO: You will need to modify this file to add / remove settings for your game.
+
+Adding/removing a setting is a 5-step process.
+(I know it seems like a lot, but it is necessary so Elm can make static
+guarantees at compile time about your Settings).
+
+I've outlined the five steps below under SETTING DEFINITIONS.
+
 -}
 
 import Common exposing (..)
@@ -12,29 +21,31 @@ import Html.Events exposing (..)
 
 --------------------------------------------------------------------------------
 -- SETTING DEFINITIONS
+--
 -- You can add / delete settings by modifying the following 5 steps:
 -- 1. Define the data model for your settings and their types.
 -- 2. Define the default values for your settings.
 -- 3. Add a message type to update your settings.
 -- 4. Define explicitly what happens to your settings when a message is received.
 -- 5. Define a list of pickers for each setting you want to be able to change.
--- This should cover most of the basic use cases. If you need extra customisation,
--- you're welcome to edit the code below or delete everything here and start
--- from scratch.
--- For STEP 5, I've defined a bunch of helper functions for you to make things easier.
--- Helper functions include:
--- - inputString         (a small text input for the user to input a string)
--- - inputFloat          (a number input for floats)
--- - inputInt            (a number input for ints)
--- - inputFloatRange     (a range slider for floats)
--- - inputIntRange       (a range slider for ints)
--- - pickChoiceButtons   (a set of buttons for the user to pick from - good for enums)
--- - pickChoiceDropdown  (a dropdown of options for the user to pick from)
--- You can customise this further if you so wish (see the HELPER FUNCTIONS section below).
+--
+-- This should cover most of the basic use cases. If you need extra
+-- customisation, you're welcome to edit the code below or delete everything
+-- here and start from scratch. For Enums, you may need to define some supporting
+-- types (e.g. SimpleColour) which you can see in the SUPPORTING TYPES section
+-- below.
 --------------------------------------------------------------------------------
--- STEP 1: Define the data model for your settings and their types.
 
 
+{-| STEP 1: Define the data model for your settings and their types.
+
+I've defined a lot of settings for this game to give you examples to go off.
+
+Keep it simple: you probably don't as many settings as there are here
+(you might only need 1 or 2). You'll have access to the data of this type
+in your Game when the user clicks StartGame.
+
+-}
 type alias Settings =
     { playMode : PlayMode
     , computerDifficulty : ComputerDifficulty
@@ -46,10 +57,11 @@ type alias Settings =
     }
 
 
+{-| STEP 2: Define the default values for your settings.
 
--- STEP 2: Define the default values for your settings.
+For simplicity's sake, every setting MUST have a default value.
 
-
+-}
 default : Settings
 default =
     { playMode = PlayHumanVsHuman
@@ -62,11 +74,12 @@ default =
     }
 
 
+{-| STEP 3: Add a message type to update your settings.
 
--- STEP 3: Add a message type to update your settings.
--- Your message type should have a payload attached (the new value for the setting).
+Your message type should have a payload attached (the new value for the
+setting). This is typically the same type as your setting.
 
-
+-}
 type Msg
     = SetPlayMode PlayMode
     | SetComputerDifficulty ComputerDifficulty
@@ -75,11 +88,12 @@ type Msg
     | SetPlayerColour Player SimpleColour
 
 
+{-| STEP 4: Define explicitly what happens to your settings when a message is received.
 
--- STEP 4: Define explicitly what happens to your settings when a message is received.
--- Most likely, you'll just update the settings record.
+Handle each Msg case below. Most likely, you'll just update the settings record
+with the new payload. You can see the implementations below for this.
 
-
+-}
 update : Msg -> Settings -> Settings
 update msg settings =
     case msg of
@@ -109,10 +123,26 @@ update msg settings =
                     { settings | player2Colour = colour }
 
 
+{-| STEP 5: Define a list of pickers for each setting you want to be able to change.
 
--- STEP 5: Define a list of pickers for each setting you want to be able to change.
+I've defined a bunch of helper functions for you to make things easier.
 
+Helper functions include:
 
+  - inputString (a small text input for the user to input a string)
+  - inputFloat (a number input for floats)
+  - inputInt (a number input for ints)
+  - inputFloatRange (a range slider for floats)
+  - inputIntRange (a range slider for ints)
+  - pickChoiceButtons (a set of buttons for the user to pick from - good for small enums)
+  - pickChoiceDropdown (a dropdown of options for the user to pick from)
+
+Each function has it's own type defining what data it needs; see the HELPER
+FUNCTIONS section.
+
+You can customise this further if you so wish (see the HELPER FUNCTIONS section below).
+
+-}
 pickers : Settings -> List SettingPickerItem
 pickers settings =
     [ pickChoiceDropdown
@@ -170,7 +200,6 @@ pickers settings =
 
 
 {-| Play mode (i.e. human vs human, me vs AI or AI vs me) for the game.
-This is usually chosen as a setting before the game starts.
 -}
 type PlayMode
     = PlayHumanVsHuman
@@ -178,6 +207,8 @@ type PlayMode
     | PlayComputerVsMe
 
 
+{-| Basic function to convert a PlayMode to a String (for the option selector).
+-}
 playModeToString : PlayMode -> String
 playModeToString playMode =
     case playMode of
@@ -191,6 +222,8 @@ playModeToString playMode =
             "Computer vs Me"
 
 
+{-| Basic function to convert a String to a PlayMode, with a default.
+-}
 stringToPlaymode : String -> PlayMode
 stringToPlaymode string =
     case string of
@@ -207,7 +240,7 @@ stringToPlaymode string =
             PlayHumanVsHuman
 
 
-{-| Difficulty of the computer if playing against a computer
+{-| Difficulty of the computer (if playing against a computer).
 -}
 type ComputerDifficulty
     = Easy
@@ -222,6 +255,8 @@ type SimpleColour
     | Blue
 
 
+{-| Convert a colour to a string
+-}
 colourToString : SimpleColour -> String
 colourToString colour =
     case colour of
@@ -245,43 +280,122 @@ colourToString colour =
 -- or add extra specific styling to a setting).
 --------------------------------------------------------------------------------
 
+-- Helper functions to create Setting picker item types.
+-- These are the functions you'll actually use to construct your pickers.
 
-type SettingPickerItem
-    = InputString { label : String, value : String, onChange : String -> Msg }
-    | InputFloat { label : String, value : Float, min : Float, max : Float, onChange : Float -> Msg }
-    | InputInt { label : String, value : Int, min : Int, max : Int, onChange : Int -> Msg }
-    | InputFloatRange { label : String, value : Float, step : Float, min : Float, max : Float, onChange : Float -> Msg }
-    | InputIntRange { label : String, value : Int, min : Int, max : Int, onChange : Int -> Msg }
-    | PickChoiceButtons { label : String, options : List { label : String, onSelect : Msg, isSelected : Bool } }
-    | PickChoiceDropdown { label : String, onSelect : String -> Msg, options : List { label : String, value : String, isSelected : Bool } }
+-- INPUT STRING
 
 
-inputString : { label : String, value : String, onChange : String -> Msg } -> SettingPickerItem
+type alias InputStringConfig =
+    { label : String
+    , value : String
+    , onChange : String -> Msg
+    }
+
+
+{-| A basic text box that allows the user to input a string.
+-}
+inputString : InputStringConfig -> SettingPickerItem
 inputString data =
     InputString data
 
 
-inputFloat : { label : String, value : Float, min : Float, max : Float, onChange : Float -> Msg } -> SettingPickerItem
+
+-- INPUT FLOAT
+
+
+type alias InputFloatConfig =
+    { label : String
+    , value : Float
+    , min : Float
+    , max : Float
+    , onChange : Float -> Msg
+    }
+
+
+{-| A basic box that allows the user to input a float.
+-}
+inputFloat : InputFloatConfig -> SettingPickerItem
 inputFloat data =
     InputFloat data
 
 
-inputInt : { label : String, value : Int, min : Int, max : Int, onChange : Int -> Msg } -> SettingPickerItem
+
+-- INPUT INT
+
+
+type alias InputIntConfig =
+    { label : String
+    , value : Int
+    , min : Int
+    , max : Int
+    , onChange : Int -> Msg
+    }
+
+
+{-| A basic box that allows the user to input an int.
+-}
+inputInt : InputIntConfig -> SettingPickerItem
 inputInt data =
     InputInt data
 
 
-inputFloatRange : { label : String, value : Float, step : Float, min : Float, max : Float, onChange : Float -> Msg } -> SettingPickerItem
+
+-- INPUT FLOAT RANGE
+
+
+type alias InputFloatRangeConfig =
+    { label : String
+    , value : Float
+    , step : Float
+    , min : Float
+    , max : Float
+    , onChange : Float -> Msg
+    }
+
+
+{-| A range slider that allows the user to input a float.
+-}
+inputFloatRange : InputFloatRangeConfig -> SettingPickerItem
 inputFloatRange data =
     InputFloatRange data
 
 
-inputIntRange : { label : String, value : Int, min : Int, max : Int, onChange : Int -> Msg } -> SettingPickerItem
+
+-- INPUT INT RANGE
+
+
+type alias InputIntRangeConfig =
+    { label : String
+    , value : Int
+    , min : Int
+    , max : Int
+    , onChange : Int -> Msg
+    }
+
+
+{-| A range slider that allows the user to input an int.
+-}
+inputIntRange : InputIntRangeConfig -> SettingPickerItem
 inputIntRange data =
     InputIntRange data
 
 
-pickChoiceButtons : { label : String, onSelect : enum -> Msg, current : enum, options : List ( String, enum ) } -> SettingPickerItem
+
+-- PICK CHOICE BUTTONS
+
+
+type alias PickChoiceButtonsGenericConfig enum =
+    { label : String
+    , onSelect : enum -> Msg
+    , current : enum
+    , options : List ( String, enum )
+    }
+
+
+{-| A set of buttons that allows the user to pick from a list of options.
+-}
+pickChoiceButtons : PickChoiceButtonsGenericConfig enum -> SettingPickerItem
 pickChoiceButtons { label, onSelect, current, options } =
     PickChoiceButtons
         { label = label
@@ -289,7 +403,23 @@ pickChoiceButtons { label, onSelect, current, options } =
         }
 
 
-pickChoiceDropdown : { label : String, onSelect : enum -> Msg, toString : enum -> String, fromString : String -> enum, current : enum, options : List ( String, enum ) } -> SettingPickerItem
+
+-- PICK CHOICE DROPDOWN
+
+
+type alias PickChoiceDropdownGenericConfig enum =
+    { label : String
+    , onSelect : enum -> Msg
+    , toString : enum -> String
+    , fromString : String -> enum
+    , current : enum
+    , options : List ( String, enum )
+    }
+
+
+{-| A dropdown that allows the user to pick from a list of options.
+-}
+pickChoiceDropdown : PickChoiceDropdownGenericConfig enum -> SettingPickerItem
 pickChoiceDropdown { label, onSelect, toString, fromString, current, options } =
     PickChoiceDropdown
         { label = label
@@ -298,6 +428,71 @@ pickChoiceDropdown { label, onSelect, toString, fromString, current, options } =
         }
 
 
+
+--------------------------------------------------------------------------------
+-- PICKER TYPES
+--------------------------------------------------------------------------------
+
+
+{-| A type of a single item in a setting picker
+
+Note: these are NOT constructed directly. Instead, there are specific helper
+functions to construct each of these. The reason is because Elm's type
+system is a bit limited, and we want to be able to have different types of Enums
+stored as items - so my compromise is to use more generic helper functions to convert it
+into these types instead.
+
+-}
+type SettingPickerItem
+    = InputString InputStringConfig
+    | InputFloat InputFloatConfig
+    | InputInt InputIntConfig
+    | InputFloatRange InputFloatRangeConfig
+    | InputIntRange InputIntRangeConfig
+    | PickChoiceButtons PickChoiceButtonsConfig
+    | PickChoiceDropdown PickChoiceDropdownConfig
+
+
+type alias PickChoiceOptionButton =
+    { label : String
+    , onSelect : Msg
+    , isSelected : Bool
+    }
+
+
+type alias PickChoiceButtonsConfig =
+    { label : String
+    , options : List PickChoiceOptionButton
+    }
+
+
+type alias PickChoiceDropdownOption =
+    { label : String
+    , value : String
+    , isSelected : Bool
+    }
+
+
+type alias PickChoiceDropdownConfig =
+    { label : String
+    , onSelect : String -> Msg
+    , options : List PickChoiceDropdownOption
+    }
+
+
+
+--------------------------------------------------------------------------------
+-- VIEW FUNCTIONS
+--------------------------------------------------------------------------------
+
+
+{-| The view function for a single setting picker item.
+
+Renders each item based on its type. You also have access to the
+current settings in this function (as Settings) so can use that
+information to make decisions on what to render as well.
+
+-}
 viewPickerItem : Settings -> SettingPickerItem -> Html Msg
 viewPickerItem settings item =
     case item of
@@ -405,12 +600,16 @@ viewPickerItem settings item =
                 ]
 
 
+{-| View just the picker part of the settings
+-}
 viewPicker : Settings -> List SettingPickerItem -> Html Msg
 viewPicker settings items =
     div [ id "settings-picker" ]
         (List.map (viewPickerItem settings) items)
 
 
+{-| The function that views all settings which gets called from the Main application.
+-}
 view : Settings -> Html Msg
 view settings =
     div [ id "settings" ]

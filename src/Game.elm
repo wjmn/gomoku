@@ -1,5 +1,23 @@
 module Game exposing (..)
 
+{-| This file handles all the game logic and provides the Gameplay interface to the Main application.alias.
+
+You will probably need to modify almost all of the code in this file for your game.
+(the majority of this file is game logic for Gomoku, although it might be helpful for you to
+see how the game logic is integrated into the core parts needed for Elm's architecture).
+
+The core parts you need to implement are:
+
+1.  A type for your Game model
+2.  An initialisation function that takes a Settings record and returns a Game record
+3.  A Msg type that represents all the possible messages that can be sent from the interface to the game logic
+4.  An update function that takes a Msg and a Game and returns a new Game
+5.  A view function that takes a Game and returns Html Msg (the interface for the game)
+
+You'll probably want to implement a lot of helper functions to make the above easier.
+
+-}
+
 import Array exposing (Array)
 import Common exposing (..)
 import Html exposing (..)
@@ -7,12 +25,12 @@ import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import List exposing (..)
 import Maybe.Extra exposing (combine)
+import Process
 import Random
 import Random.List
 import Settings exposing (PlayMode(..), Settings)
 import Task
 import Tuple exposing (first)
-import Process
 
 
 
@@ -21,13 +39,19 @@ import Process
 --------------------------------------------------------------------------------
 
 
-{-| A record containing all of the game state.
-In TicTacToe, the main data needed is the board (an array of cells).
+{-| A record type which contains all of the game state.
+
+This needs to be sufficiently detailed to represent the entire game state, i.e.
+if you save this record, turn off your computer, and then reload this record,
+you should be able to pick up the game exactly where you left off.
+
 We also need some metadata including the settings used to initialise
 the game, the status (whether it's still going or completed), and
 whose turn it currently is.
+
 You might also like to pre-calculate some data and store it here
 if you will use it a lot.
+
 -}
 type alias Game =
     { settings : Settings
@@ -37,10 +61,20 @@ type alias Game =
     }
 
 
+{-| A cell on the board can be empty or occupied by a player
+-}
+type Cell
+    = Empty
+    | OccupiedBy Player
+
+
 {-| Create the initial game data given the settings.
-In TicTacToe, An initial game starts with Player1's turn and an empty board.
+
+In Gomoku, an initial game starts with Player1's turn and an empty board.
+
 Need to check here on whether playing solo or not - if the first turn is the
-computer's turn, then also need to generate the first move.
+computer's turn, then we also need to generate the first move.
+
 -}
 init : Settings -> ( Game, Cmd Msg )
 init settings =
@@ -57,32 +91,28 @@ init settings =
             ( initialSettings, Cmd.none )
 
         PlayComputerVsMe ->
-            (initialSettings, Task.perform (\_ -> PauseThenMakeComputerMove) (Process.sleep 250))
+            ( initialSettings, Task.perform (\_ -> PauseThenMakeComputerMove) (Process.sleep 250) )
 
         PlayMeVsComputer ->
             ( initialSettings, Cmd.none )
-
-
-{-| A cell on the board can be empty or occupied by a player
--}
-type Cell
-    = Empty
-    | OccupiedBy Player
 
 
 
 --------------------------------------------------------------------------------
 -- GAME LOGIC
 --
--- What moves can you make in TicTacToe? Well there's only one (you can mark an
+-- What moves can you make in Gomoku? Well there's only one (put a stone on an
 -- empty cell) That makes the move representation very simple.
 --
 -- I've defined it as an enum though, so if you want you can add more and still
 -- use the same basic game logic:
+--
 -- 1. Apply the move to the game state to return a new game state
 -- 2. Check if the game completes or if it continues
+--
 -- This repeats, but it repeats in the Elm Architecture update loop, not here.
--- So don't worry about any while loops - just focus on the game logic for a single
+--
+-- So don't worry about any `while` loops - just focus on the game logic for a single
 -- move.
 --------------------------------------------------------------------------------
 
@@ -94,9 +124,13 @@ type Move
 
 
 {-| Apply a move to a game state, returning a new game state.
-Because TicTacToe is an alternating game, we know which player made the move.
-If your game is simultaneous, then you will need to add which player made the
-move to either this function, or to the move payload/data.
+
+Because Gomoku is an alternating game, we know which player made the move based
+on whose turn it is (which is stored in the game state).
+
+However, if your game is simultaneous, then you will need to add data on which
+player made the move to either this function, or to the move payload.
+
 -}
 applyMove : Game -> Move -> Game
 applyMove game move =
@@ -119,15 +153,20 @@ applyMove game move =
 
 --------------------------------------------------------------------------------
 -- INTERFACE LOGIC
+--
 -- This section deals with how to map the interface to the game logic.
+--
 -- Msg contains messages that can be sent from the game interface. You should then
 -- choose how to handle them in terms of game logic.
+--
 -- This also sets scaffolding for the computer players - when a computer player
 -- makes a move, they generate a message (ReceivedComputerMove) which is then handled
 -- just like a player interacting with the interface.
 --------------------------------------------------------------------------------
 
 
+{-| An enumeration of all messages that can be sent from the interface to the game
+-}
 type Msg
     = ClickedSquare Int
     | PauseThenMakeComputerMove
@@ -135,14 +174,20 @@ type Msg
     | NoOp
 
 
+{-| A convenience function to pipe a command into a (Game, Cmd Msg) tuple.
+-}
 withCmd : Cmd Msg -> Game -> ( Game, Cmd Msg )
 withCmd cmd game =
     ( game, cmd )
 
 
+{-| The main update function for the game, which takes an interface message and returns
+a new game state as well as any additional commands to be run.
+-}
 update : Msg -> Game -> ( Game, Cmd Msg )
 update msg game =
     case msg of
+        -- This interface message (when the user clicks a square) simply maps to the MarkEmptyCell game move.
         ClickedSquare index ->
             let
                 nextState =
@@ -156,28 +201,36 @@ update msg game =
                             nextState
                                 |> withCmd Cmd.none
 
+                        -- If the game is continuing and it's the computer's turn, then we need to generate a move.
+                        -- To make it more "human-like", pause for 250 milliseconds before generating a move.
                         _ ->
-                            nextState 
-                            |> withCmd (Task.perform (\_ -> PauseThenMakeComputerMove) (Process.sleep 250))
+                            nextState
+                                |> withCmd (Task.perform (\_ -> PauseThenMakeComputerMove) (Process.sleep 250))
 
                 Complete _ ->
                     nextState
                         |> withCmd Cmd.none
 
+        -- This interface message is generated by the computer player when it's time to make a move.
         PauseThenMakeComputerMove ->
-            case game.settings.computerDifficulty of 
-                -- Example of using randomness to generate a move
+            case game.settings.computerDifficulty of
+                -- Example of using randomness to generate a move (an "Easy" player)
+                -- See the makeComputerMoveEasy function
                 Settings.Easy ->
                     game |> withCmd (makeComputerMoveEasy game)
 
-                -- Example of deterministically generating a move
+                -- Example of deterministically generating a move (a "Hard" player)
+                -- See the makeComputerMoveHard function
                 Settings.Hard ->
                     game |> withCmd (makeComputerMoveHard game)
 
-        ReceivedComputerMove move -> 
+        -- Once the computer makes a move, we handle it just like a player move.
+        -- Howeever it looks a bit simpler because we know the next move will be a player move.
+        ReceivedComputerMove move ->
             applyMove game move
                 |> withCmd Cmd.none
 
+        -- A NoOp message is used to ignore messages (it doesn't change the game state).
         NoOp ->
             game
                 |> withCmd Cmd.none
@@ -191,6 +244,12 @@ update msg game =
 --------------------------------------------------------------------------------
 
 
+{-| The main view function that gets called from the Main application.
+
+Essentially, takes a game and projects it into a HTML interface where Messages
+can be sent from.
+
+-}
 view : Game -> Html Msg
 view game =
     div [ id "game-screen-container" ]
@@ -199,6 +258,8 @@ view game =
         ]
 
 
+{-| View the Gomoku status at the top of the game board
+-}
 viewStatus : Game -> Html Msg
 viewStatus ({ settings } as game) =
     let
@@ -216,69 +277,83 @@ viewStatus ({ settings } as game) =
                 Playing ->
                     currentColour game |> Settings.colourToString
 
-        (statusClass, statusText) =
+        ( statusClass, statusText ) =
             case game.status of
                 Playing ->
                     case settings.playMode of
                         PlayHumanVsHuman ->
-                            ("status-playing", currentName game ++ "'s turn.")
+                            ( "status-playing", currentName game ++ "'s turn." )
 
                         PlayComputerVsMe ->
                             case game.turn of
                                 Player1 ->
-                                    ("status-thinking", currentName game ++ " is thinking...")
+                                    ( "status-thinking", currentName game ++ " is thinking..." )
 
                                 Player2 ->
-                                    ("status-playing", "Your turn.")
+                                    ( "status-playing", "Your turn." )
 
                         PlayMeVsComputer ->
                             case game.turn of
                                 Player1 ->
-                                    ("status-playing", "Your turn.")
+                                    ( "status-playing", "Your turn." )
 
                                 Player2 ->
-                                    ("status-thinking", currentName game ++ " is thinking...")
+                                    ( "status-thinking", currentName game ++ " is thinking..." )
 
                 Complete (Winner Player1) ->
                     case settings.playMode of
                         PlayHumanVsHuman ->
-                            ("status-won", currentName game ++ " WINS!")
+                            ( "status-won", currentName game ++ " WINS!" )
 
                         PlayComputerVsMe ->
-                            ("status-lost", "You lost...")
+                            ( "status-lost", "You lost..." )
 
                         PlayMeVsComputer ->
-                            ("status-won", "You win!")
+                            ( "status-won", "You win!" )
 
                 Complete (Winner Player2) ->
                     case settings.playMode of
                         PlayHumanVsHuman ->
-                            ("status-won", currentName game ++ " WINS!")
+                            ( "status-won", currentName game ++ " WINS!" )
 
                         PlayComputerVsMe ->
-                            ("status-won", "You win!")
+                            ( "status-won", "You win!" )
 
                         PlayMeVsComputer ->
-                            ("status-lost", "You lost...)")
+                            ( "status-lost", "You lost...)" )
 
                 Complete Draw ->
-                    ("status-draw", "It's a draw.")
+                    ( "status-draw", "It's a draw." )
     in
     div [ id "game-status", class statusClass, class colour ]
         [ div [ class ("game-status-text " ++ colour) ] [ text statusText ]
-        , div [ class "firework-container", classList [("show", statusClass == "status-won")]] 
-            [div [class "firework"] []
-            , div [class "firework"] []
-            , div [class "firework"] []
-            ] 
-        , div [class "flash", class statusClass, classList [("show", statusClass == "status-won" || statusClass == "status-lost" || statusClass == "status-draw")]] [] ]
+        , div [ class "firework-container", classList [ ( "show", statusClass == "status-won" ) ] ]
+            [ div [ class "firework" ] []
+            , div [ class "firework" ] []
+            , div [ class "firework" ] []
+            ]
+        , div
+            [ class "flash"
+            , class statusClass
+            , classList [ ( "show", statusClass == "status-won" || statusClass == "status-lost" || statusClass == "status-draw" ) ]
+            ]
+            []
+        ]
 
+
+{-| View the actual Gomoku game board
+-}
 viewBoard : Game -> Html Msg
 viewBoard game =
     let
         boardSize =
             game.settings.boardSize
 
+        -- Convert a single cell to HTML
+        -- There's quite a bit more going here as we need to handle the
+        -- cell rendering quite differently depending on the current game state
+        -- (and also we want to make sure the cell only sends messages if it's empty
+        -- and the game is actually continuing and it's our turn).
         cellView index cell =
             let
                 onClickEvent =
@@ -351,6 +426,21 @@ viewBoard game =
 --------------------------------------------------------------------------------
 
 
+{-| Logic for an "easy" computer player.
+
+This is a simple player which sorts the possible moves by
+a basic score (based on the number of neighbours next to the move)
+and then randomly picks one out of the top 5.
+
+Randomness is a little more tricky in Elm than other languages as Elm is pure,
+so this might be useful as a reference of how you might use Randomness in your
+computer AI players. Essentially any random events get wrapped in a
+Random type that you need to map/andThen under (ala Haskell monads).
+
+Your computer player function takes a game and returns a move, which you
+then wrap in ReceivedComputerMove to create a Cmd Msg.
+
+-}
 makeComputerMoveEasy : Game -> Cmd Msg
 makeComputerMoveEasy game =
     let
@@ -384,11 +474,14 @@ makeComputerMoveEasy game =
                         |> List.filter (\c -> c == OccupiedBy game.turn)
                         |> List.length
             in
+            --- If you can win with a move, then score it extremely highly
             if playerWonWithCoord game.settings.boardSize coord newBoard then
                 99999999.99999
+                -- If the opponent will win with this move, then score it quite highly
 
             else if playerWonWithCoord game.settings.boardSize coord newBoardOpponent then
                 88888888.88888
+                -- Otherwise score it based on how many neighbours it has and how close to the center it is
 
             else
                 toFloat numNextTo + centralTendency
@@ -404,6 +497,7 @@ makeComputerMoveEasy game =
                 |> List.maximum
                 |> Maybe.withDefault 0
     in
+    -- If there's a move that causes you or opponent to win, then definitely choose it
     if maxScore > 100000 then
         allScores
             |> Array.toList
@@ -419,6 +513,7 @@ makeComputerMoveEasy game =
             |> Random.generate ReceivedComputerMove
 
     else
+        -- Otherwise, randomly choose one of the top 5 scoring moves
         allScores
             |> Array.toList
             |> List.sortBy Tuple.second
@@ -444,6 +539,16 @@ makeComputerMoveEasy game =
 --------------------------------------------------------------------------------
 
 
+{-| Very similar to the easy player.
+
+This function is deterministic however, so the way it is returned
+is slightly different (wrap in Task.perform).
+
+This player is slightly better than the Easy player, and will score
+cells based on the size of the largest row of stones it will make
+for you or your opponent. It's not that challenging to beat, however.
+
+-}
 makeComputerMoveHard : Game -> Cmd Msg
 makeComputerMoveHard game =
     let
@@ -513,6 +618,8 @@ makeComputerMoveHard game =
 --------------------------------------------------------------------------------
 -- GAME HELPER FUNCTIONS
 -- Helper functions to implement the game logic.
+-- You probably won't need any of these, as they're specific to this
+-- implementation of Gomoku.
 --------------------------------------------------------------------------------
 
 
@@ -523,6 +630,9 @@ setCell index player board =
     Array.set index (OccupiedBy player) board
 
 
+{-| A convenient piece of data to create a list of all possible
+offsets of five numbers in a row containing 0.
+-}
 fiveWindows : List (List Int)
 fiveWindows =
     [ [ -4, -3, -2, -1, 0 ]
@@ -533,6 +643,8 @@ fiveWindows =
     ]
 
 
+{-| Returns a list of all five-in-a-rows horizontally containing a coord
+-}
 rowOfFivesWithCoord : Int -> Coord -> List (List Coord)
 rowOfFivesWithCoord boardSize c =
     fiveWindows
@@ -540,6 +652,8 @@ rowOfFivesWithCoord boardSize c =
         |> List.filter (\coords -> List.all (inBounds boardSize) coords)
 
 
+{-| Returns a list of all five-in-a-rows vertically containing a coord
+-}
 colOfFivesWithCoord : Int -> Coord -> List (List Coord)
 colOfFivesWithCoord boardSize c =
     fiveWindows
@@ -547,6 +661,8 @@ colOfFivesWithCoord boardSize c =
         |> List.filter (\coords -> List.all (inBounds boardSize) coords)
 
 
+{-| Returns a list of all five-in-a-rows diagonally containing a coord
+-}
 diagsWithCoord : Int -> Coord -> List (List Coord)
 diagsWithCoord boardSize c =
     let
@@ -562,6 +678,8 @@ diagsWithCoord boardSize c =
         |> List.filter (\coords -> List.all (inBounds boardSize) coords)
 
 
+{-| Returns a list of all five-in-a-rows (any direction) containing a coord
+-}
 allFivesWithCoord : Int -> Coord -> List (List Coord)
 allFivesWithCoord boardSize c =
     List.concat
@@ -571,6 +689,8 @@ allFivesWithCoord boardSize c =
         ]
 
 
+{-| Returns True if all the cells in a list of coords are occupied by the same player -
+-}
 isWinningFive : Int -> Array Cell -> List Coord -> Bool
 isWinningFive boardSize board coords =
     coords
@@ -580,6 +700,8 @@ isWinningFive boardSize board coords =
         |> Maybe.withDefault False
 
 
+{-| Helper: take from a list while predicate is true
+-}
 takeWhile : (a -> Bool) -> List a -> List a
 takeWhile predicate list =
     case list of
@@ -594,6 +716,8 @@ takeWhile predicate list =
                 []
 
 
+{-| Helper: drop from a list while predicate is true
+-}
 dropWhile : (a -> Bool) -> List a -> List a
 dropWhile predicate list =
     case list of
@@ -608,6 +732,8 @@ dropWhile predicate list =
                 list
 
 
+{-| Return the maximum number of cells occupied by a player in a row in a collection of lists of coords in a row
+-}
 mostInARow : Player -> Int -> Array Cell -> List (List Coord) -> Int
 mostInARow player boardSize board fives =
     fives
@@ -623,12 +749,16 @@ mostInARow player boardSize board fives =
         |> Maybe.withDefault 0
 
 
+{-| Returns True if a player has won with their move in a given coordinate.
+-}
 playerWonWithCoord : Int -> Coord -> Array Cell -> Bool
 playerWonWithCoord boardSize coord newBoard =
     allFivesWithCoord boardSize coord
         |> List.any (isWinningFive boardSize newBoard)
 
 
+{-| Returns True if the board is full
+-}
 boardIsFull : Array Cell -> Bool
 boardIsFull board =
     board
@@ -636,6 +766,8 @@ boardIsFull board =
         |> List.all (\cell -> cell /= Empty)
 
 
+{-| Returns the colour of the current player
+-}
 currentColour : Game -> Settings.SimpleColour
 currentColour game =
     case game.turn of
@@ -646,6 +778,8 @@ currentColour game =
             game.settings.player2Colour
 
 
+{-| Returns the name of the current player
+-}
 currentName : Game -> String
 currentName game =
     case game.turn of

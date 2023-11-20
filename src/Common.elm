@@ -1,11 +1,14 @@
 module Common exposing (..)
 
 {-| This module contains code shared in Settings, Main and Game.
-It's a good place to store the really basic types and functions. If you
-need a type that's used in Settings and your Game, it has to go here.
 
-    I also think that these types and functions will be generally useful for
-    you, even if your game isn't Gomoku.
+It's a good place to store the really basic types and functions.
+
+Importantly, if you have a type/function that's used in both Settings.elm and Game.elm,
+I strongly suggest putting it here (to avoid circular dependencies).
+
+I also think that these types and functions will be generally useful for
+you, even if your game isn't Gomoku.
 
 -}
 
@@ -61,16 +64,14 @@ opponent player =
             Player1
 
 
-{-| A helper function to return the coordinates of a cell
-given the boardSize and its index in a flattened array.
+{-| A helper function to return the coordinates of a cell given the boardSize and its index in a flattened array.
 -}
 indexToCoord : Int -> Int -> Coord
 indexToCoord boardSize index =
     { y = index // boardSize, x = modBy boardSize index }
 
 
-{-| A helper function to return the index of a cell in a flattened array
-given the boardSize and its coordinates.
+{-| A helper function to return the index of a cell in a flattened array given the boardSize and its coordinates.
 -}
 coordToIndex : Int -> Coord -> Int
 coordToIndex boardSize { x, y } =

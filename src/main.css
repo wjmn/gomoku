@@ -231,13 +231,13 @@ button.selected {
   justify-content: center;
 }
 
-#start-new-game-button-container {
+#restart-button-container {
   position: fixed;
   top: 1rem;
   left: 1rem;
 }
 
-#start-new-game-button {
+#restart-button {
   border: 0;
   margin: 0;
   background: #94a3b8;
@@ -246,13 +246,13 @@ button.selected {
   padding-right: 1rem;
 }
 
-button#start-new-game-button:hover {
+button#restart-button:hover {
   border: 0;
   margin: 0;
   background: #475569;
 }
 
-button#start-new-game-button:active {
+button#restart-button:active {
   border: 0;
   margin: 0;
 }
