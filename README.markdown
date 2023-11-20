@@ -1,5 +1,7 @@
 # Gomoku: An Example Game for the Dr Ecco Heuristic Problem Solving Website
 
+![thumbnail](public/thumbnail.png)
+
 This is a minimal example game that fulfils all the basic requirements of the *Heuristic Problem Solving* final project. 
 
 Namely, this is:
@@ -14,13 +16,19 @@ Namely, this is:
 
 Make sure you have [Elm](https://elm-lang.org/) and [`create-elm-app`](https://github.com/halfzebra/create-elm-app) installed. 
 
-To run the development server:
+First, clone this repo:
+
+```
+git clone https://github.com/wjmn/gomoku
+```
+
+To run the development server inside the repository:
 
 ```
 elm-app start
 ```
 
-To build the application, run the build script (make sure you have execution permissions):
+To build the application, run the build script from inside the repository (make sure you have execution permissions):
 
 ```
 ./build.sh
@@ -55,6 +63,8 @@ You are welcome to add other assets you need to access from your game (e.g. imag
 # Making your Own Game
 
 I suggest you use the [blank game template](https://github.com/wjmn/drecco-game-template) as the starting point for your own game, but you might find this helpful as a reference. The tricky thing with using a finished game like this as a template is that you won't be able to compile it if you just try to modify small bits of it - it's much easier to instead incrementally build up the functionality of your game from a blank template. 
+
+[I have made an accompanying slide deck for this repository that contains some notes on how to make web games in Elm, using this repository as a reference.](https://docs.google.com/presentation/d/129qsrCUZcptXZv9JHMH_myvFiPYEAsj2znWSbgXIdA4/edit?usp=sharing)
 
 # Deployment
 
