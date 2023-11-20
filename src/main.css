@@ -57,7 +57,7 @@ button:hover {
   margin-top: 0px;
 }
 
-button:focus {
+button:active {
   border-bottom: 0px;
   margin-top: 4px;
 }
